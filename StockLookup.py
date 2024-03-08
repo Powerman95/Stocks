@@ -1,3 +1,6 @@
+#!/home/daddy/anaconda3/bini/python
+import os
+os.chdir('/home/daddy/Documents/Python/Stocks')
 import tkinter as tk
 
 import pandas as pd
@@ -7,6 +10,9 @@ import numpy as np
 from matplotlib import pyplot as plt
 import yfinance as yf
 
+#   Add button called daily
+#       1. Function
+#       2. Button
 def increase():
     value = int(lbl_value["text"])
     lbl_value["text"] = f"{value + 1}"
@@ -28,11 +34,12 @@ def lookup():
     return price
 
 def LookUpList():
-    data= yf.download("SPSC,SNPS,FSLY,OSW,KNSL,APG,NICE,VTI",period="30d")
+    data= yf.download("SPSC,SNPS,FSLY,OSW,KNSL,APG,NICE,VTI,^GSPC",period="30d")
     return data
 
 def DisplayList():
     print('Lookup All Values')
+    txtMyBox.delete("1.0","end")
     ndays = int(lbl_value.cget("text"))
     if(ndays<1):
         ndays = 1
@@ -48,6 +55,57 @@ def DisplayList():
     df["Percent"] = 100*dfChange/oldValues
     txtMyBox.insert(tk.END,df)
     return Values
+
+def Sp500():
+    print('Look up S&P 500 for 2023')
+    data= yf.download("^GSPC",start="2023-01-01",end="2023-12-31")
+    dataClose=data['Close']
+    myIndex= dataClose.index
+    Values = dataClose.loc[str(myIndex[-1])]
+    oldValues = dataClose.loc[str(myIndex[0])]
+    df = pd.DataFrame( {"Symbol":Values,"Price":Values,"Previous":oldValues})
+    dfChange = df["Price"]-df["Previous"]
+    df["Change"] = dfChange
+    df["Percent"] = 100*dfChange/oldValues
+    txtMyBox.insert(tk.END,df)
+    return Values
+
+def weekly():
+    print('Lookup weekly metrics.')
+    data= yf.download("SPSC,SNPS,FSLY,OSW,KNSL,APG,NICE,VTI,^GSPC",period="30d")
+    MyMetrics = ['AGG','VEA','^GSPC']
+    tickers=yf.Tickers(MyMetrics)
+    end_date = dt.datetime.now().strftime('%Y-%m-%d')
+    start_date = dt.datetime.now()+dt.timedelta(days=-2)
+    tickers_hist =  tickers.history(end=end_date,start=start_date)
+    dataClose=tickers_hist['Close']
+    myIndex= dataClose.index
+    Values = dataClose.loc[str(myIndex[-1])]
+    txtMyBox.insert(tk.END,'\n')
+    txtMyBox.insert(tk.END,round(Values,2))
+    return Values
+
+def LookUpList():
+    data= yf.download("SPSC,SNPS,FSLY,OSW,KNSL,APG,NICE,VTI,^GSPC",period="30d")
+    return data
+
+def Daily():
+    print('Lookup All Values')
+    TickersList = ['AGG','VEA','^GSPC']
+    txtMyBox.delete("1.0","end")
+    ndays = 2
+    data= yf.download(TickersList,period="30d")
+    dataClose=data['Close']
+    myIndex= dataClose.index
+    Values = dataClose.loc[str(myIndex[-1])]
+    oldValues = dataClose.loc[str(myIndex[-ndays-1])]
+    df = pd.DataFrame( {"Symbol":Values.index,"Price":Values,"Previous":oldValues})
+    dfChange = df["Price"]-df["Previous"]
+    df["Change"] = dfChange
+    df["Percent"] = 100*dfChange/oldValues
+    txtMyBox.insert(tk.END,df)
+    return Values
+
 
 window = tk.Tk()
 
@@ -77,6 +135,15 @@ btn_Sats.grid(row=0,column=3,sticky="snew")
 btn_All     =   tk.Button(master=frame1, text="All",command=DisplayList)
 btn_All.grid(row=0,column=4,sticky="snew")
 
+
+btn_Sp500 = tk.Button(master = frame1, text="S & P 500",command=Sp500)
+btn_Sp500.grid(row=0,column=5,sticky="snew")
+
+btn_Weekly= tk.Button(master = frame1, text="Weekly",command=weekly)
+btn_Weekly.grid(row=0,column=6,sticky="snew")
+
+btn_Daily= tk.Button(master = frame1, text="Daily",command=Daily)
+btn_Daily.grid(row=0,column=7,sticky="snew")
 #### Add the text box to frame 2.
 txtMyBox = tk.Text(master=frame2)
 txtMyBox.grid(row=1,column=0)

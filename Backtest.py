@@ -1,20 +1,39 @@
 #!/home/daddy/anaconda3/bin/python
+#!/usr/bin/python3
 import os
 os.chdir('/home/daddy/Documents/Python/Stocks')
 import tkinter as tk
-# This is a change to the file.
+
 import pandas as pd
 import pandas_datareader as pdr
 import datetime as dt
 import numpy as np
 from matplotlib import pyplot as plt
 import yfinance as yf
+from backtesting import Backtest, Strategy
+from backtesting.lib import crossover
+from backtesting.test import SMA, GOOG
 
-DateTimeFormat = '%Y-%m-%d %H:%M:%S'
-DateTimeFormat = '%Y-%m-%d'
-#   Add button called daily
-#       1. Function
-#       2. Button
+class SmaCross(Strategy):
+    n1 = 10
+    n2 = 20
+    
+    def init(self):
+        close = self.data.Close
+        self.sma1 = self.I(SMA, close, self.n1)
+        self.sma2 = self.I(SMA, close, self.n2)
+
+    def next(self):
+        if crossover(self.sma1, self.sma2):
+            self.buy()
+        elif crossover(self.sma2, self.sma1):
+            self.sell()
+bt = Backtest(GOOG, SmaCross,
+    cash = 10000, commission=0.002,exclusive_orders=True)
+
+output = bt.run()
+bt.plot()
+
 def increase():
     value = int(lbl_value["text"])
     lbl_value["text"] = f"{value + 1}"
@@ -62,69 +81,30 @@ def Sp500():
     print('Look up S&P 500 for 2023')
     data= yf.download("^GSPC",start="2023-01-01",end="2023-12-31")
     dataClose=data['Close']
-    print("Close Data Collected")
     myIndex= dataClose.index
     Values = dataClose.loc[str(myIndex[-1])]
-    OldValues = dataClose.loc[str(myIndex[0])]
-    df = pd.DataFrame( {"Symbol":Values,"Price":Values,"Previous":OldValues})
+    oldValues = dataClose.loc[str(myIndex[0])]
+    df = pd.DataFrame( {"Symbol":Values,"Price":Values,"Previous":oldValues})
     dfChange = df["Price"]-df["Previous"]
     df["Change"] = dfChange
-    df["Percent"] = 100*dfChange/OldValues
+    df["Percent"] = 100*dfChange/oldValues
     txtMyBox.insert(tk.END,df)
     return Values
 
 def weekly():
-#get today
-#subtract weekday to get monday
-#subract 2 to get previous Saturday.
-#set start date at last Saturday.
-#get data.  prices today [-1] and last saturday [0]
-    today = dt.datetime.now()
-    LastFriday = today+dt.timedelta(days=-dt.datetime.weekday(today)-3)
-    EndDate = dt.datetime.strftime(today,format=DateTimeFormat)
-    StartDate = dt.datetime.strftime(LastFriday,format=DateTimeFormat)
     print('Lookup weekly metrics.')
-    WatchList = ["VTI","VXUS","AGG","VEA","^GSPC"]
-    data= yf.download(WatchList,start=StartDate,end=EndDate)
-    
-    dataClose=data['Close']
+    MyMetrics = ['AGG','VEA','^GSPC']
+    tickers=yf.Tickers(MyMetrics)
+    end_date = dt.datetime.now().strftime('%Y-%m-%d')
+    start_date = dt.datetime.now()+dt.timedelta(days=-2)
+    tickers_hist =  tickers.history(end=end_date,start=start_date)
+    dataClose=tickers_hist['Close']
     myIndex= dataClose.index
-    Values = dataClose.loc[str(myIndex[-1])]    #Closing values on the last date of the dataset.
-    OldValues = dataClose.loc[str(myIndex[0])]  #Closing values on the first date of the dataset.
-    
-    df = pd.DataFrame( {"Price":Values,"Previous":OldValues})
-    dfChange = df["Price"]-df["Previous"]
-    
-    df["Change"] = dfChange
-    df["Percent"] = 100*dfChange/OldValues
-
-    txtMyBox.delete("1.0","end")
-    txtMyBox.insert(tk.END,df.round(2))
+    Values = dataClose.loc[str(myIndex[-1])]
+    txtMyBox.insert(tk.END,'\n')
+    txtMyBox.insert(tk.END,round(Values,2))
     return Values
 
-def LookUpList():
-    data= yf.download("SPSC,SNPS,FSLY,OSW,KNSL,APG,NICE,VTI,^GSPC",period="30d")
-    return data
-
-def Daily():
-    print('Lookup All Values')
-    TickersList = ['AGG','VEA','^GSPC','VXUS','RCL','^DJI']
-    txtMyBox.delete("1.0","end")
-    ndays = 2
-    tickers = yf.Tickers(TickersList)
-    Values = []
-    Close = []
-    for tick in tickers.tickers:
-        Values.append(tickers.tickers[tick].info['bid'])
-        Close.append(tickers.tickers[tick].info['previousClose'])
-    df = pd.DataFrame(TickersList,columns=['Symbol'])
-    df['Price']=Values
-    df['Previous']=Close
-    dfChange = df["Price"]-df["Previous"]
-    df["Change"] = dfChange
-    df["Percent"] = 100*dfChange/df['Previous']
-    txtMyBox.insert(tk.END,df)
-    return Values
 
 
 window = tk.Tk()
@@ -162,8 +142,6 @@ btn_Sp500.grid(row=0,column=5,sticky="snew")
 btn_Weekly= tk.Button(master = frame1, text="Weekly",command=weekly)
 btn_Weekly.grid(row=0,column=6,sticky="snew")
 
-btn_Daily= tk.Button(master = frame1, text="Daily",command=Daily)
-btn_Daily.grid(row=0,column=7,sticky="snew")
 #### Add the text box to frame 2.
 txtMyBox = tk.Text(master=frame2)
 txtMyBox.grid(row=1,column=0)

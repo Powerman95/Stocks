@@ -1,0 +1,10 @@
+[user]
+	email = powerman95@yahoo.com
+	emal = powerman95@yahoo.com
+	name = Jim Ulrich
+[diff]
+	tool = vimdiff
+[merge]
+	tool = vimdiff
+[diftool]
+	prompt = false

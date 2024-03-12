@@ -2,7 +2,6 @@
 import os
 os.chdir('/home/daddy/Documents/Python/Stocks')
 import tkinter as tk
-# This is a change to the file.
 import pandas as pd
 import pandas_datareader as pdr
 import datetime as dt
@@ -10,6 +9,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import yfinance as yf
 
+# Put a change in and find the diff.
 DateTimeFormat = '%Y-%m-%d %H:%M:%S'
 DateTimeFormat = '%Y-%m-%d'
 #   Add button called daily

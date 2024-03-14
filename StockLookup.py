@@ -8,6 +8,29 @@ import datetime as dt
 import numpy as np
 from matplotlib import pyplot as plt
 import yfinance as yf
+from backtesting import Backtest, Strategy
+from backtesting.lib import crossover
+from backtesting.test import SMA, GOOG
+
+class SmaCross(Strategy):
+    n1 = 10
+    n2 = 20
+    
+    def init(self):
+        close = self.data.Close
+        self.sma1 = self.I(SMA, close, self.n1)
+        self.sma2 = self.I(SMA, close, self.n2)
+
+    def next(self):
+        if crossover(self.sma1, self.sma2):
+            self.buy()
+        elif crossover(self.sma2, self.sma1):
+            self.sell()
+bt = Backtest(GOOG, SmaCross,
+    cash = 10000, commission=0.002,exclusive_orders=True)
+
+output = bt.run()
+bt.plot()
 
 # Put a change in and find the diff.
 DateTimeFormat = '%Y-%m-%d %H:%M:%S'
@@ -23,6 +46,18 @@ def increase():
 def decrease():
     value = int(lbl_value["text"])
     lbl_value["text"] = f"{value - 1}"
+
+def RandomStock():
+    #Choose stocks at random from the csv list.
+    nstocks = int(lbl_value.cget("text"))
+    if(nstocks<1):
+        nstocks = 1
+    print(nstocks," days")
+    df = pd.read_csv('nasdaq.csv')
+    MyRow = df.sample(n=nstocks)
+    txtMyBox.delete("1.0","end")
+    txtMyBox.insert(tk.END,MyRow)
+    return(MyRow)
 
 def lookup():
     ticker = 'SATS'
@@ -73,12 +108,12 @@ def Sp500():
     txtMyBox.insert(tk.END,df)
     return Values
 
-def weekly():
+def weekly():   #Compare the latest close to that of last Friday.
 #get today
 #subtract weekday to get monday
-#subract 2 to get previous Saturday.
-#set start date at last Saturday.
-#get data.  prices today [-1] and last saturday [0]
+#subract 3 to get previous Friday.
+#set start date at last Friday.
+#get data.  prices today [-1] and last Friday [0]
     today = dt.datetime.now()
     LastFriday = today+dt.timedelta(days=-dt.datetime.weekday(today)-3)
     EndDate = dt.datetime.strftime(today,format=DateTimeFormat)
@@ -112,19 +147,22 @@ def Daily():
     txtMyBox.delete("1.0","end")
     ndays = 2
     tickers = yf.Tickers(TickersList)
-    Values = []
-    Close = []
+    Bids    = []
+    Asks    = []
+    Close   = []
     for tick in tickers.tickers:
-        Values.append(tickers.tickers[tick].info['bid'])
+        Bids.append(tickers.tickers[tick].info['bid'])
+        Asks.append(tickers.tickers[tick].info['ask'])
         Close.append(tickers.tickers[tick].info['previousClose'])
     df = pd.DataFrame(TickersList,columns=['Symbol'])
-    df['Price']=Values
+    df['Price']=Bids
+    df['Ask']=Asks
     df['Previous']=Close
     dfChange = df["Price"]-df["Previous"]
     df["Change"] = dfChange
     df["Percent"] = 100*dfChange/df['Previous']
     txtMyBox.insert(tk.END,df)
-    return Values
+    return  Bids 
 
 
 window = tk.Tk()
@@ -164,6 +202,10 @@ btn_Weekly.grid(row=0,column=6,sticky="snew")
 
 btn_Daily= tk.Button(master = frame1, text="Daily",command=Daily)
 btn_Daily.grid(row=0,column=7,sticky="snew")
+
+btn_Random = tk.Button(master = frame1, text="Random",command=RandomStock)
+btn_Random.grid(row=0,column=8,sticky="snew")
+
 #### Add the text box to frame 2.
 txtMyBox = tk.Text(master=frame2)
 txtMyBox.grid(row=1,column=0)

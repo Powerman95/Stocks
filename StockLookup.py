@@ -12,26 +12,6 @@ from backtesting import Backtest, Strategy
 from backtesting.lib import crossover
 from backtesting.test import SMA, GOOG
 
-class SmaCross(Strategy):
-    n1 = 10
-    n2 = 20
-    
-    def init(self):
-        close = self.data.Close
-        self.sma1 = self.I(SMA, close, self.n1)
-        self.sma2 = self.I(SMA, close, self.n2)
-
-    def next(self):
-        if crossover(self.sma1, self.sma2):
-            self.buy()
-        elif crossover(self.sma2, self.sma1):
-            self.sell()
-bt = Backtest(GOOG, SmaCross,
-    cash = 10000, commission=0.002,exclusive_orders=True)
-
-output = bt.run()
-bt.plot()
-
 # Put a change in and find the diff.
 DateTimeFormat = '%Y-%m-%d %H:%M:%S'
 DateTimeFormat = '%Y-%m-%d'
@@ -48,16 +28,32 @@ def decrease():
     lbl_value["text"] = f"{value - 1}"
 
 def RandomStock():
-    #Choose stocks at random from the csv list.
-    nstocks = int(lbl_value.cget("text"))
-    if(nstocks<1):
-        nstocks = 1
-    print(nstocks," days")
+    #Choose a stock at random from the csv list.
     df = pd.read_csv('nasdaq.csv')
-    MyRow = df.sample(n=nstocks)
+    nstocks = 10 
+    if(nstocks<1):
+        value = 1
+    else:
+        value = int(lbl_value["text"])
+    MyRow = df.sample(n=value)
     txtMyBox.delete("1.0","end")
     txtMyBox.insert(tk.END,MyRow)
-    return(MyRow)
+
+    df = pd.read_csv('nasdaq.csv')
+    MyRow = df.sample(n=nstocks)
+    print(MyRow)
+    BackTestStart ='2005-01-01'
+    BackTestStop ='2015-01-01'
+    StockList = MyRow['Symbol'].values.tolist()
+
+    df2 = yf.download(StockList,period='max',group_by='ticker')
+    for ticker in StockList:
+        OneStock = df2[ticker].dropna()
+        bt = Backtest(OneStock, SmaCross,
+        cash = 10000, commission=0.002,exclusive_orders=True)
+        output = bt.run()
+        bt.plot()
+#        return(MyRow)
 
 def lookup():
     ticker = 'SATS'
@@ -164,6 +160,20 @@ def Daily():
     txtMyBox.insert(tk.END,df)
     return  Bids 
 
+class SmaCross(Strategy):
+    n1 = 10
+    n2 = 20
+    
+    def init(self):
+        close = self.data.Close
+        self.sma1 = self.I(SMA, close, self.n1)
+        self.sma2 = self.I(SMA, close, self.n2)
+
+    def next(self):
+        if crossover(self.sma1, self.sma2):
+            self.buy()
+        elif crossover(self.sma2, self.sma1):
+            self.sell()
 
 window = tk.Tk()
 
@@ -192,6 +202,33 @@ btn_Sats.grid(row=0,column=3,sticky="snew")
 
 btn_All     =   tk.Button(master=frame1, text="All",command=DisplayList)
 btn_All.grid(row=0,column=4,sticky="snew")
+class SmaCross(Strategy):
+    n1 = 10
+    n2 = 20
+    
+    def init(self):
+        close = self.data.Close
+        self.sma1 = self.I(SMA, close, self.n1)
+        self.sma2 = self.I(SMA, close, self.n2)
+
+    def next(self):
+        if crossover(self.sma1, self.sma2):
+            self.buy()
+        elif crossover(self.sma2, self.sma1):
+            self.sell()
+    n1 = 10
+    n2 = 20
+    
+    def init(self):
+        close = self.data.Close
+        self.sma1 = self.I(SMA, close, self.n1)
+        self.sma2 = self.I(SMA, close, self.n2)
+
+    def next(self):
+        if crossover(self.sma1, self.sma2):
+            self.buy()
+        elif crossover(self.sma2, self.sma1):
+            self.sell()
 
 
 btn_Sp500 = tk.Button(master = frame1, text="S & P 500",command=Sp500)
